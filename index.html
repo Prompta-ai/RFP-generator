@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en-SG">
+<head>
+    <meta charset="UTF-8">
+    <title>Prompta AI RFP Tool</title>
+    <style>
+    </style>
+</head>
+<body>
+    <script>
+        let renderSpaceWidth = 0;
+        let renderSpaceHeight = 0;
+        let sizeUnit = 0;
+        let parentWidget = null;
+        let widgetRegistry = new Set();
+
+        let themeColour0 = "rgb(0, 0, 0)";
+        let themeColour1 = "rgb(64, 0, 50)";
+        let themeColour2 = "rgb(128, 0, 100)";
+        let themeColour3 = "rgb(191, 0, 150)";
+        let themeColour4 = "rgb(255, 0, 200)";
+        let themeColour5 = "rgb(255, 64, 214)";
+        let themeColour6 = "rgb(255, 128, 227)";
+        let themeColour7 = "rgb(255, 191, 241)";
+        let themeColour8 = "rgb(255, 255, 255)";
+
+        function getThemeColour(n){
+            if(n == 0){return themeColour0;}
+            if(n == 1){return themeColour1;}
+            if(n == 2){return themeColour2;}
+            if(n == 3){return themeColour3;}
+            if(n == 4){return themeColour4;}
+            if(n == 5){return themeColour5;}
+            if(n == 6){return themeColour6;}
+            if(n == 7){return themeColour7;}
+            if(n == 8){return themeColour8;}
+            return "rgba(0, 0, 0, 0)";
+        }
+
+        function resize(){
+            renderSpaceWidth = window.innerWidth;
+            renderSpaceHeight = window.innerHeight;
+            if(renderSpaceWidth < renderSpaceHeight){sizeUnit = 0.05 * renderSpaceWidth;}
+            else{sizeUnit = 0.05 * renderSpaceHeight;}
+            if(parentWidget != null){
+                parentWidget.style.width = String(renderSpaceWidth) + "px";
+                parentWidget.style.height = String(renderSpaceHeight) + "px";
+            }
+            for(let i of widgetRegistry){
+                let pw = parseInt(i.parent.style.width.substring(0, i.parent.style.width.length - 2));
+                let ph = parseInt(i.parent.style.height.substring(0, i.parent.style.height.length - 2));
+                i.style.position = "absolute";
+                i.style.left = String(i.x1 * pw + i.x0 * sizeUnit) + "px";
+                i.style.top = String(i.y1 * ph + i.y0 * sizeUnit) + "px";
+                i.style.width = String(i.w1 * pw + i.w0 * sizeUnit) + "px";
+                i.style.height = String(i.h1 * ph + i.h0 * sizeUnit) + "px";
+                if(i.firstChild != null && i.firstChild.multiline == true){
+                    i.firstChild.style.fontSize = String(0.8 * sizeUnit) + "px";
+                }
+            }
+        }
+
+        function makeMultiline(w){
+            w.multiline = true;
+            w.firstChild.style.fontSize = String(0.8 * sizeUnit) + "px";
+            w.style.justifyContent = "flex-start";
+            w.style.alignItems = "flex-start";
+            w.firstChild.style.textAlign = "left";
+            w.firstChild.style.whiteSpace = "pre-wrap";
+        }
+
+        function init(){
+            resize();
+            window.addEventListener("resize", resize);
+            parentWidget = document.createElement("div");
+            parentWidget.style.position = "absolute";
+            parentWidget.style.left = "0px";
+            parentWidget.style.top = "0px";
+            parentWidget.style.width = String(renderSpaceWidth) + "px";
+            parentWidget.style.height = String(renderSpaceHeight) + "px";
+            parentWidget.style.fontSize = String(renderSpaceHeight) + "px";
+            parentWidget.style.backgroundColor = themeColour8;
+            document.body.appendChild(parentWidget);
+        }
+
+        function SGWOptionalScrollView(parent, x1, x0, y1, y0, w1, w0, h1, h0, colour){
+            let widget = document.createElement("div");
+            let pw = parseInt(parent.style.width.substring(0, parent.style.width.length - 2));
+            let ph = parseInt(parent.style.height.substring(0, parent.style.height.length - 2));
+            widget.style.position = "absolute";
+            widget.style.left = String(x1 * pw + x0 * sizeUnit) + "px";
+            widget.style.top = String(y1 * ph + y0 * sizeUnit) + "px";
+            widget.style.width = String(w1 * pw + w0 * sizeUnit) + "px";
+            widget.style.height = String(h1 * ph + h0 * sizeUnit) + "px";
+            widget.style.fontSize = String(h1 * ph + h0 * sizeUnit) + "px";
+            widget.style.backgroundColor = getThemeColour(colour);
+            widget.parent = parent;
+            widget.x1 = x1;
+            widget.x0 = x0;
+            widget.y1 = y1;
+            widget.y0 = y0;
+            widget.w1 = w1;
+            widget.w0 = w0;
+            widget.h1 = h1;
+            widget.h0 = h0;
+            widget.style.overflowX = "hidden";
+            widget.style.overflowY = "auto";
+            parent.appendChild(widget);
+            widgetRegistry.add(widget);
+            return widget;
+        }
+
+        function SGWTextLabel(parent, s, x1, x0, y1, y0, w1, w0, h1, h0){
+            let w = SGWOptionalScrollView(parent, x1, x0, y1, y0, w1, w0, h1, h0, -1);
+            let b = document.createElement("p");
+            b.textContent = s;
+            b.style.backgroundColor = getThemeColour(8);
+            b.style.color = getThemeColour(4);
+            b.style.fontFamily = "Arial";
+            b.style.fontSize = "80%";
+            w.style.display = "flex";
+            w.style.alignItems = "center";
+            w.style.justifyContent = "center";
+            w.style.overflowY = "visible";
+            b.style.margin = "0";
+            b.style.padding = "0";
+            w.appendChild(b);
+            return w;
+        }
+
+        function setTextLabelContents(w, s){
+            w.firstChild.textContent = s;
+        }
+
+        function makeWarning(w){
+            w.firstChild.style.color = getThemeColour(2);
+            return w;
+        }
+
+        function recolourInteractive(b){
+            let offset = 0;
+            if(b.parentElement != null && b.parentElement.isSelected == 1){offset = -2;}
+            if(b.isFocused == true){
+                b.style.backgroundColor = getThemeColour(2 + offset);
+                b.style.color = getThemeColour(6 + offset);
+            }
+            else if(b.isHovering == true){
+                b.style.backgroundColor = getThemeColour(3 + offset);
+                b.style.color = getThemeColour(7 + offset);
+            }
+            else{
+                b.style.backgroundColor = getThemeColour(4 + offset);
+                b.style.color = getThemeColour(8 + offset);
+            }
+        }
+
+        let focusedButton = null;
+        document.addEventListener("mouseup", () => {if(focusedButton == null){return;} focusedButton.isFocused = false; recolourInteractive(focusedButton); focusedButton = null;});
+
+        function SGWTextButton(parent, s, func, x1, x0, y1, y0, w1, w0, h1, h0){
+            let w = SGWOptionalScrollView(parent, x1, x0, y1, y0, w1, w0, h1, h0, -1);
+            let b = document.createElement("button");
+            b.textContent = s;
+            b.isHovering = false;
+            b.isFocused = false;
+            b.style.width = "100%";
+            b.style.height = "100%";
+            b.style.backgroundColor = getThemeColour(4);
+            b.style.color = getThemeColour(8);
+            b.style.outline = "none";
+            b.style.border = "none";
+            b.addEventListener("mouseover", () => {b.isHovering = true; recolourInteractive(b);});
+            b.addEventListener("mouseout", () => {b.isHovering = false; recolourInteractive(b);});
+            b.addEventListener("mousedown", () => {b.isFocused = true; recolourInteractive(b); focusedButton = b;});
+            b.style.fontFamily = "Arial";
+            b.style.fontSize = "80%";
+            b.style.whiteSpace = "nowrap";
+            b.style.overflow = "hidden";
+            b.style.textOverflow = "ellipsis";
+            w.style.display = "flex";
+            w.style.alignItems = "center";
+            w.style.justifyContent = "center";
+            b.addEventListener("click", func);
+            w.style.overflowY = "visible";
+            b.style.margin = "0";
+            b.style.padding = "0";
+            w.appendChild(b);
+            return w;
+        }
+
+        function getButtonTextContent(w){
+            return w.firstChild.textContent;
+        }
+
+        function getSelected(w){
+            if(w.isSelected == 1){return true;}
+            else{return false;}
+        }
+
+        function setSelected(w, x){
+            if(x == true){
+                w.isSelected = 1;
+                w.firstChild.style.color = getThemeColour(6);
+                w.firstChild.style.backgroundColor = getThemeColour(2);
+            }
+            else{
+                w.isSelected = 0;
+                w.firstChild.style.color = getThemeColour(8);
+                w.firstChild.style.backgroundColor = getThemeColour(4);
+            }
+        }
+
+        function SGWTextInput(parent, x1, x0, y1, y0, w1, w0, h1, h0){
+            let w = SGWOptionalScrollView(parent, x1, x0, y1, y0, w1, w0, h1, h0, -1);
+            let b = document.createElement("textarea");
+            b.isHovering = false;
+            b.isFocused = false;
+            b.style.width = "100%";
+            b.style.height = "100%";
+            b.style.backgroundColor = getThemeColour(4);
+            b.style.color = getThemeColour(8);
+            b.style.outline = "none";
+            b.style.border = "none";
+            b.addEventListener("mouseover", () => {b.isHovering = true; recolourInteractive(b);});
+            b.addEventListener("mouseout", () => {b.isHovering = false; recolourInteractive(b);});
+            b.addEventListener("focus", () => {b.isFocused = true; recolourInteractive(b);});
+            b.addEventListener("blur", () => {b.isFocused = false; recolourInteractive(b);});
+            b.style.textAlign = "center";
+            b.style.fontFamily = "Arial";
+            b.style.fontSize = "80%";
+            w.style.display = "flex";
+            w.style.alignItems = "center";
+            w.style.justifyContent = "center";
+            w.style.overflowY = "visible";
+            b.style.margin = "0";
+            b.style.padding = "0";
+            w.appendChild(b);
+            return w;
+        }
+
+        function getTextInputContents(w){
+            return w.firstChild.value;
+        }
+
+        function setTextInputContents(w, s){
+            w.firstChild.value = s;
+        }
+
+        function deleteWidget(widget){
+            while(widget.firstChild != null){
+                deleteWidget(widget.firstChild);
+            }
+            widgetRegistry.delete(widget);
+            widget.remove();
+        }
+
+        init();
+    </script>
+    <script>
+        function allocateBlob(byteCount){
+            return new ArrayBuffer(byteCount);
+        }
+
+        function writeInt(blob, offset, n){
+            new DataView(blob).setInt32(offset, n, true);
+        }
+
+        function writeFloat(blob, offset, f){
+            new DataView(blob).setFloat32(offset, f, true);
+        }
+
+        function writeString(blob, offset, s){
+            let stringBlob = new TextEncoder().encode(s);
+            new Uint8Array(blob, offset, stringBlob.length).set(stringBlob);
+        }
+
+        function writeBlob(blob, offset, s){
+            new Uint8Array(blob, offset, s.byteLength).set(new Uint8Array(s));
+        }
+
+        function getStringBytesCount(s){
+            return new TextEncoder().encode(s).length;
+        }
+
+        function readInt(blob, offset){
+            return new DataView(blob).getInt32(offset, true);
+        }
+
+        function readFloat(blob, offset){
+            return new DataView(blob).getFloat32(offset, true);
+        }
+
+        function readString(blob, offset, bytesCount){
+            return new TextDecoder().decode(new Uint8Array(blob, offset, bytesCount));
+        }
+
+        function readBlob(blob, offset, bytesCount){
+            return blob.slice(offset, offset + bytesCount);
+        }
+
+        function callAPI(endpointPath, blob, callback){
+            let fetchCallParameter = {method: "POST", body: blob};
+            fetch(endpointPath, fetchCallParameter).then(response => response.blob()).then(dataBlob => dataBlob.arrayBuffer()).then(buffer => callback(buffer));
+        }
+
+        function callAPIPageShutdown(endpointPath, blob){
+            let realBlob = new Blob([blob]);
+            navigator.sendBeacon(endpointPath, realBlob);
+        }
+    </script>
+    <script>
+        let staticVar_projects = null;
+
+        let staticVar_projectPageBackground = null;
+        let staticVar_projectListBackground = null;
+
+        let staticVar_newProjectPage = null;
+        let staticVar_newProjectNameInput = null;
+
+        let staticVar_waitNewProjectPageBackground = null;
+        let staticVar_sampleProjectCreationTimer = 0;
+        let staticVar_waitNewProjectPageMessage = null;
+
+        let staticVar_waitResponseUploadBackground = null;
+        let staticVar_waitResponseUploadMessage = null;
+        let staticVar_sampleResponseUploadTimer = 0;
+
+        let staticVar_editViewBackground = null;
+        let staticVar_editViewQuestionsList = null;
+        let staticVar_editViewContentsBackground = null;
+        let staticVar_editViewShowQuestionsButton = null;
+        let staticVar_editViewQuestionLabel = null;
+        let staticVar_editViewInputField = null;
+        let staticVar_editViewCurrentQuestionNumber = -1;
+
+        function askForProjectData(){
+                if(staticVar_projectPageBackground != null){deleteWidget(staticVar_projectPageBackground);}
+                staticVar_projectPageBackground = null;
+                staticVar_projectListBackground = null;
+                staticVar_projects = null;
+            callAPI("/projects", allocateBlob(0), receiveProjectData);
+        }
+
+        function confirmProjectCreation(blob){
+            deleteWidget(staticVar_newProjectPage);
+            staticVar_newProjectNameInput = null;
+            staticVar_newProjectPage = null;
+        }
+
+        function doNothing(blob){}
+
+        function useSampleResponseUploadResults(blob){
+            deleteWidget(staticVar_waitResponseUploadMessage);
+            /*
+                layout(location = 0) int status;
+                layout(location = 4) int messageLength;
+                layout(location = 8) char message[messageLength];
+            */
+            let responseUploadStatus = readInt(blob, 0); // 0 - processing, 1 - done
+            if(responseUploadStatus == 1){
+                clearInterval(staticVar_sampleResponseUploadTimer);
+                staticVar_sampleResponseUploadTimer = 0;
+                deleteWidget(staticVar_waitResponseUploadBackground);
+                staticVar_waitResponseUploadBackground = null;
+                staticVar_waitResponseUploadMessage = null;
+                askForProjectData();
+                return;
+            }
+            let messageLength = readInt(blob, 4);
+            let message = readString(blob, 8, messageLength);
+            deleteWidget(staticVar_waitResponseUploadMessage);
+            staticVar_waitResponseUploadMessage = SGWTextLabel(staticVar_waitResponseUploadBackground, message, 0.0, 0.5, 0.5, 1.0, 1.0, -1.0, 0.0, 1.0);
+        }
+
+        staticVar_ignoreRFPConfirm = null;
+
+        function ignoreRFPYes(){
+            let blob = allocateBlob(4);
+            writeInt(blob, 0, 1);
+            callAPI("ignore_rfp_response", blob, deleteIgnoreRFPDialogue);
+        }
+
+        function ignoreRFPNo(){
+            let blob = allocateBlob(4);
+            writeInt(blob, 0, -1);
+            callAPI("ignore_rfp_response", blob, deleteIgnoreRFPDialogue);
+        }
+
+        function deleteIgnoreRFPDialogue(blob){
+            deleteWidget(staticVar_ignoreRFPConfirm);
+            staticVar_ignoreRFPConfirm = null;
+        }
+
+        function useSampleProjectCreationResults(blob){
+            deleteWidget(staticVar_waitNewProjectPageMessage);
+            /*
+                layout(location = 0) int status;
+                layout(location = 4) int messageLength;
+                layout(location = 8) char message[messageLength];
+            */
+            let projectCreationStatus = readInt(blob, 0); // 0 - processing, 1 - done, 2 - suspected impossible RFP
+            if(projectCreationStatus == 1){
+                clearInterval(staticVar_sampleProjectCreationTimer);
+                staticVar_sampleProjectCreationTimer = 0;
+                deleteWidget(staticVar_waitNewProjectPageBackground);
+                staticVar_waitNewProjectPageBackground = null;
+                staticVar_waitNewProjectPageMessage = null;
+                askForProjectData();
+                return;
+            }
+            else if(projectCreationStatus == 2){
+                let messageLength = readInt(blob, 4);
+                let message = readString(blob, 8, messageLength);
+                staticVar_ignoreRFPConfirm = SGWOptionalScrollView(parentWidget, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 8);
+                SGWTextLabel(staticVar_ignoreRFPConfirm, "Recommended: DO NOT respond (see below for why)", 0.0, 0.5, 0.0, 0.5, 1.0, -1.0, 0.0, 1.0);
+                w = SGWTextLabel(staticVar_ignoreRFPConfirm, message, 0.0, 0.5, 0.0, 0.5, 1.0, -1.0, 1.0, -3.0);
+                makeMultiline(w);
+                SGWTextButton(staticVar_ignoreRFPConfirm, "ignore RFP", ignoreRFPYes, 0.0, 0.5, 1.0, -1.5, 0.5, -0.75, 0.0, 1.0);
+                SGWTextButton(staticVar_ignoreRFPConfirm, "continue anyways", ignoreRFPNo, 0.5, 0.25, 1.0, -1.5, 0.5, -0.75, 0.0, 1.0);
+                return;
+            }
+            let messageLength = readInt(blob, 4);
+            let message = readString(blob, 8, messageLength);
+            deleteWidget(staticVar_waitNewProjectPageMessage);
+            staticVar_waitNewProjectPageMessage = SGWTextLabel(staticVar_waitNewProjectPageBackground, message, 0.0, 0.5, 0.5, 1.0, 1.0, -1.0, 0.0, 1.0);
+        }
+
+        function sampleProjectCreation(){
+            callAPI("/new_project_sample", allocateBlob(0), useSampleProjectCreationResults);
+        }
+
+        function sampleResponseUpload(){
+            callAPI("/upload_response_sample", allocateBlob(0), useSampleResponseUploadResults);
+        }
+
+        function startWaitNewProject(){
+            staticVar_waitNewProjectPageBackground = SGWOptionalScrollView(parentWidget, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 8);
+            SGWTextLabel(staticVar_waitNewProjectPageBackground, "Creating project...", 0.0, 0.5, 0.5, -1.5, 1.0, -1.0, 0.0, 2.0);
+            staticVar_waitNewProjectPageMessage = SGWTextLabel(staticVar_waitNewProjectPageBackground, "sending file...", 0.0, 0.5, 0.5, 1.0, 1.0, -1.0, 0.0, 1.0);
+            staticVar_sampleProjectCreationTimer = setInterval(sampleProjectCreation, 1000);
+        }
+
+        function startWaitResponseUpload(){
+            staticVar_waitResponseUploadBackground = SGWOptionalScrollView(parentWidget, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 8);
+            new SGWTextLabel(staticVar_waitResponseUploadBackground, "processing sample...", 0.0, 0.5, 0.5, -1.5, 1.0, -1.0, 0.0, 2.0);
+            staticVar_waitResponseUploadMessage = SGWTextLabel(staticVar_waitResponseUploadBackground, "sending file...", 0.0, 0.5, 0.5, 1.0, 1.0, -1.0, 0.0, 1.0);
+            staticVar_sampleResponseUploadTimer = setInterval(sampleResponseUpload, 1000);
+        }
+
+        function sendSampleResponseToAPI(filePath, blob){
+            filePath = filePath.toLowerCase();
+            if((filePath.length <= 4 || filePath.substring(filePath.length - 4) != ".pdf") && (filePath.length <= 4 || filePath.substring(filePath.length - 4) != ".doc") && (filePath.length <= 5 || filePath.substring(filePath.length - 5) != ".docx") && (filePath.length <= 4 || filePath.substring(filePath.length - 4) != ".zip")){
+                makeWarning(SGWTextLabel(staticVar_projectPageBackground, "only PDF / DOC / DOCX / ZIP files are accepted", 0.0, 15.5, 0.0, 0.625, 0.0, 12.0, 0.0, 0.75));
+                return;
+            }
+            fileType = 0; // 1 - PDF, 2 - DOCX, 3 - DOC, 4 - ZIP
+            if(filePath.length >= 4 && filePath.substring(filePath.length - 4) == ".pdf"){fileType = 1;}
+            else if(filePath.length >= 5 && filePath.substring(filePath.length - 5) == ".docx"){fileType = 2;}
+            else if(filePath.length >= 4 && filePath.substring(filePath.length - 4) == ".doc"){fileType = 3;}
+            else if(filePath.length >= 4 && filePath.substring(filePath.length - 4) == ".zip"){fileType = 4;}
+            /*
+                layout(location = 0) int fileType;
+                layout(location = 4) int fileSize;
+                layout(location = 8) char file[fileSize];
+            */
+           let blobToSend = allocateBlob(8 + blob.byteLength);
+           writeInt(blobToSend, 0, fileType);
+           writeInt(blobToSend, 4, blob.byteLength);
+           writeBlob(blobToSend, 8, blob);
+           callAPI("/upload_response", blobToSend, doNothing);
+           startWaitResponseUpload();
+        }
+
+        function sendIncomingRFPToAPI(filePath, blob){
+            filePath = filePath.toLowerCase();
+            if((filePath.length <= 4 || filePath.substring(filePath.length - 4) != ".pdf") && (filePath.length <= 4 || filePath.substring(filePath.length - 4) != ".doc") && (filePath.length <= 5 || filePath.substring(filePath.length - 5) != ".docx") && (filePath.length <= 4 || filePath.substring(filePath.length - 4) != ".zip")){
+                makeWarning(SGWTextLabel(staticVar_newProjectPage, "RFP must be a PDF / DOC / DOCX / ZIP file", 0.0, 0.5, 0.0, 5.5, 1.0, -1.0, 0.0, 0.75));
+                return;
+            }
+            fileType = 0; // 1 - PDF, 2 - DOCX, 3 - DOC, 4 - ZIP
+            if(filePath.length >= 4 && filePath.substring(filePath.length - 4) == ".pdf"){fileType = 1;}
+            else if(filePath.length >= 5 && filePath.substring(filePath.length - 5) == ".docx"){fileType = 2;}
+            else if(filePath.length >= 4 && filePath.substring(filePath.length - 4) == ".doc"){fileType = 3;}
+            else if(filePath.length >= 4 && filePath.substring(filePath.length - 4) == ".zip"){fileType = 4;}
+            let projectName = getTextInputContents(staticVar_newProjectNameInput);
+            let nameByteLength = getStringBytesCount(projectName);
+            /*
+                layout(location = 0) int fileType;
+                layout(location = 4) int lengthOfProjectName;
+                layout(location = 8) char projectName[lengthOfProjectName];
+                layout(location = 8 + lengthOfProjectName) int fileSize;
+                layout(location = 12 + lengthOfProjectName) char file[fileSize];
+            */
+           let blobToSend = allocateBlob(4 + 4 + nameByteLength + 4 + blob.byteLength);
+           writeInt(blobToSend, 0, fileType);
+           writeInt(blobToSend, 4, nameByteLength);
+           writeString(blobToSend, 8, projectName);
+           writeInt(blobToSend, 8 + nameByteLength, blob.byteLength);
+           writeBlob(blobToSend, 12 + nameByteLength, blob);
+           callAPI("/new_project", blobToSend, confirmProjectCreation);
+           startWaitNewProject();
+        }
+
+        function checkNewProjectName(){
+            let newProjectName = getTextInputContents(staticVar_newProjectNameInput);
+            if(newProjectName == ""){
+                makeWarning(SGWTextLabel(staticVar_newProjectPage, "project name cannot be empty", 0.0, 6.0, 0.0, 3.5, 1.0, -7.5, 0.0, 0.75));
+                return false;
+            }
+            else if(staticVar_projects.has(newProjectName) == true){
+                makeWarning(SGWTextLabel(staticVar_newProjectPage, "cannot be same as name of existing project", 0.0, 6.0, 0.0, 3.5, 1.0, -7.5, 0.0, 0.75));
+                return false;
+            }
+            return true;
+        }
+
+        function uploadIncomingRFP(){
+            if(checkNewProjectName() == false){return;}
+            let fileInput = document.createElement("input");
+            fileInput.type = "file";
+            fileInput.style.display = "none";
+            document.body.appendChild(fileInput);
+            fileInput.addEventListener("change", async (e) => {
+                let blob = await e.target.files[0].arrayBuffer();
+                if(e.target.files[0] != null){sendIncomingRFPToAPI(e.target.files[0].name, blob);}
+                document.body.removeChild(fileInput);
+            });
+            fileInput.click();
+        }
+
+        function createNewProject(){
+            staticVar_newProjectPage = SGWOptionalScrollView(parentWidget, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 8);
+            SGWTextLabel(staticVar_newProjectPage, "create new project", 0.0, 0.5, 0.0, 0.5, 1.0, -1.0, 0.0, 1.5);
+            SGWTextLabel(staticVar_newProjectPage, "project name:", 0.0, 0.5, 0.0, 2.5, 0.0, 5.0, 0.0, 1.0);
+            staticVar_newProjectNameInput = SGWTextInput(staticVar_newProjectPage, 0.0, 6.0, 0.0, 2.5, 1.0, -7.5, 0.0, 1.0);
+            SGWTextButton(staticVar_newProjectPage, "upload RFP", uploadIncomingRFP, 0.5, -3.0, 0.0, 4.5, 0.0, 6.0, 0.0, 1.0);
+            SGWTextButton(staticVar_newProjectPage, "cancel project creation", confirmProjectCreation, 0.5, -5.0, 0.0, 6.0, 0.0, 10.0, 0.0, 1.0);
+        }
+
+        function uploadSampleResponse(){
+            let fileInput = document.createElement("input");
+            fileInput.type = "file";
+            fileInput.style.display = "none";
+            document.body.appendChild(fileInput);
+            fileInput.addEventListener("change", async (e) => {
+                let blob = await e.target.files[0].arrayBuffer();
+                if(e.target.files[0] != null){sendSampleResponseToAPI(e.target.files[0].name, blob);}
+                document.body.removeChild(fileInput);
+            });
+            fileInput.click();
+        }
+
+        function viewQuestion(blob){
+            blob = allocateBlob(4);
+            if(targetQuestionNumber != undefined){
+                writeInt(blob, 0, targetQuestionNumber);
+                staticVar_editViewCurrentQuestionNumber = targetQuestionNumber;
+                targetQuestionNumber = undefined;
+            }
+            else{writeInt(blob, 0, staticVar_editViewCurrentQuestionNumber);}
+            callAPI("/get_question", blob, receiveQuestionContents);
+        }
+
+        function receiveQuestionContents(blob){
+            let question = readString(blob, readInt(blob, 0), readInt(blob, 4));
+            let response = readString(blob, readInt(blob, 8), readInt(blob, 12));
+            setTextLabelContents(staticVar_editViewQuestionLabel, question);
+            setTextInputContents(staticVar_editViewInputField, response);
+        }
+
+        function hideQuestionList(){
+            staticVar_editViewQuestionsList.w1 = 0.0;
+            staticVar_editViewContentsBackground.w1 = 1.0;
+            staticVar_editViewContentsBackground.x1 = 0.0;
+            staticVar_editViewShowQuestionsButton.x1 = 0.0;
+            resize();
+        }
+
+        function showQuestionList(){
+            staticVar_editViewQuestionsList.w1 = 0.5;
+            staticVar_editViewContentsBackground.w1 = 0.5;
+            staticVar_editViewContentsBackground.x1 = 0.5;
+            staticVar_editViewShowQuestionsButton.x1 = 2.0;
+            resize();
+        }
+        
+        function createSave(implicit, fromEnhance){
+            if(staticVar_editViewCurrentQuestionNumber == -1){
+                viewQuestion(allocateBlob(0));
+                return;
+            }
+            let newResponse = getTextInputContents(staticVar_editViewInputField);
+            let length = getStringBytesCount(newResponse);
+            let blob = allocateBlob(12 + length);
+            writeInt(blob, 0, staticVar_editViewCurrentQuestionNumber);
+            writeInt(blob, 4, implicit);
+            writeInt(blob, 8, length);
+            writeString(blob, 12, newResponse);
+            if(fromEnhance == false){callAPI("/save_response", blob, viewQuestion);}
+            else{callAPI("/save_response", blob, showAiEnhancePage);}
+        }
+
+        function createExplicitSave(){
+            createSave(0, false);
+        }
+
+        let targetQuestionNumber = -1;
+        function createImplicitSave(){
+            targetQuestionNumber = this.questionNumber;
+            createSave(1, false);
+        }
+
+        function autoSave(){
+            if(staticVar_editViewCurrentQuestionNumber == -1){
+                callAPIPageShutdown("/terminate_server", allocateBlob(0));
+                return;
+            }
+            let newResponse = getTextInputContents(staticVar_editViewInputField);
+            let length = getStringBytesCount(newResponse);
+            let blob = allocateBlob(12 + length);
+            writeInt(blob, 0, staticVar_editViewCurrentQuestionNumber);
+            writeInt(blob, 4, 1);
+            writeInt(blob, 8, length);
+            writeString(blob, 12, newResponse);
+            callAPIPageShutdown("/terminate_with_save", blob);
+        }
+        window.addEventListener("pagehide", autoSave);
+
+        let staticVar_confirmRevertPage = null;
+        function showConfirmRevertPage(){
+            if(staticVar_editViewCurrentQuestionNumber == -1){return;}
+            staticVar_confirmRevertPage = SGWOptionalScrollView(parentWidget, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 8);
+            let message = "\tAre you sure that you want to revert to the previous saved response? This cannot be undone.\n\tIf there is no previous save response, this response will be deleted permanently.\t"
+            let l = SGWTextLabel(staticVar_confirmRevertPage, message, 0.25, 0.5, 0.25, 0.5, 0.5, -1.0, 0.5, -2.0);
+            makeMultiline(l);
+            SGWTextButton(staticVar_confirmRevertPage, "cancel", cancelRevert, 0.25, 0.0, 0.75, -1.0, 0.25, 0.0, 0.0, 1.0);
+            SGWTextButton(staticVar_confirmRevertPage, "revert", confirmRevert, 0.5, 0.0, 0.75, -1.0, 0.25, 0.0, 0.0, 1.0);
+        }
+
+        function cancelRevert(){
+            deleteWidget(staticVar_confirmRevertPage);
+            staticVar_confirmRevertPage = null;
+        }
+
+        function confirmRevert(){
+            cancelRevert();
+            if(staticVar_editViewCurrentQuestionNumber == -1){return;}
+            blob = allocateBlob(4);
+            writeInt(blob, 0, staticVar_editViewCurrentQuestionNumber);
+            callAPI("/revert_response", blob, viewQuestion);
+        }
+
+        staticVar_enhancePageBackground = null;
+        staticVar_enhanceInputField = null;
+        staticVar_enhanceChangeYesButton = null;
+        staticVar_enhanceChangeNoButton = null;
+        staticVar_enhanceAllowChange = false;
+        function showAiEnhancePage(blob){
+            if(staticVar_editViewCurrentQuestionNumber == -1){return;}
+            staticVar_enhancePageBackground = SGWOptionalScrollView(parentWidget, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 8);
+            SGWTextButton(staticVar_enhancePageBackground, "cancel operation", cancelAiEnhance, 0.0, 0.5, 0.0, 0.5, 1.0, -1.0, 0.0, 1.0);
+            SGWTextButton(staticVar_enhancePageBackground, "check spelling, grammar, tone", useGrammarCheckAiEnhance, 0.0, 0.5, 0.0, 2.5, 1.0, -1.0, 0.0, 1.0);
+            SGWTextLabel(staticVar_enhancePageBackground, "custom instructions:", 0.0, 0.5, 0.0, 4.5, 1.0, -1.0, 0.0, 1.0);
+            SGWTextLabel(staticVar_enhancePageBackground, "allow enhance to change response contents? : ", 0.5, -13.0, 0.0, 6.0, 0.0, 20.0, 0.0, 1.0);
+            staticVar_enhanceChangeYesButton = SGWTextButton(staticVar_enhancePageBackground, "yes", enhanceSetChangeYes, 0.5, 5.0, 0.0, 6.0, 0.0, 3.0, 0.0, 1.0);
+            staticVar_enhanceChangeNoButton = SGWTextButton(staticVar_enhancePageBackground, "no", enhanceSetChangeNo, 0.5, 8.0, 0.0, 6.0, 0.0, 3.0, 0.0, 1.0);
+            staticVar_enhanceInputField = SGWTextInput(staticVar_enhancePageBackground, 0.0, 0.5, 0.0, 7.5, 1.0, -1.0, 1.0, -9.5);
+            makeMultiline(staticVar_enhanceInputField);
+            SGWTextButton(staticVar_enhancePageBackground, "use custom instructions entered above", useCustomInstructionsAiEnhance, 0.0, 0.5, 1.0, -1.5, 1.0, -1.0, 0.0, 1.0);
+            enhanceSetChangeNo();
+        }
+
+        function enhanceSetChangeYes(){
+            setSelected(staticVar_enhanceChangeYesButton, true);
+            setSelected(staticVar_enhanceChangeNoButton, false);
+        }
+
+        function enhanceSetChangeNo(){
+            setSelected(staticVar_enhanceChangeYesButton, false);
+            setSelected(staticVar_enhanceChangeNoButton, true);
+        }
+
+        function cancelAiEnhance(){
+            deleteWidget(staticVar_enhancePageBackground);
+            staticVar_enhanceInputField = null;
+            staticVar_enhancePageBackground = null;
+            staticVar_enhanceChangeNoButton = null;
+            staticVar_enhanceChangeYesButton = null;
+            staticVar_enhanceAllowChange = false;
+        }
+
+        function useCustomInstructionsAiEnhance(){
+            let instructions = getTextInputContents(staticVar_enhanceInputField);
+            let canModifyContents = getSelected(staticVar_enhanceChangeYesButton);
+            cancelAiEnhance();
+            useAiEnhance(instructions, canModifyContents);
+        }
+
+        function useGrammarCheckAiEnhance(){
+            cancelAiEnhance();
+            useAiEnhance("Rewrite the response to fix issues with grammar, spelling, and tone. You must ensure that the response is suitable for appearing on a formal RFP response proposal sent by Prompta AI to another Canadian organisation.", false);
+        }
+        
+        function useAiEnhance(instructions, canModifyContents){
+            staticVar_waitPage = SGWOptionalScrollView(parentWidget, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 8);
+            SGWTextLabel(staticVar_waitPage, "processing...", 0.0, 0.5, 0.5, -1.0, 1.0, -1.0, 0.0, 2.0);
+            /*
+            layout(location = 0) int questionNumber;
+            layout(location = 4) int instructionsLength;
+            layout(location = 8) char instructions[instructionsLength];
+            */
+            let instructionsLength = getStringBytesCount(instructions);
+            blob = allocateBlob(12 + instructionsLength);
+            writeInt(blob, 0, staticVar_editViewCurrentQuestionNumber);
+            if(canModifyContents == true){writeInt(blob, 4, -1);}
+            else{writeInt(blob, 4, staticVar_editViewCurrentQuestionNumber);}
+            writeInt(blob, 8, instructionsLength);
+            writeString(blob, 12, instructions);
+            callAPI("/enhance", blob, doneGenerate);
+        }
+
+        staticVar_waitPage = null;
+        function doneGenerate(blob){
+            deleteWidget(staticVar_waitPage);
+            staticVar_waitPage = null;
+            viewQuestion(blob);
+        }
+
+        function useAiGenerate(){
+            if(staticVar_editViewCurrentQuestionNumber == -1){return;}
+            staticVar_waitPage = SGWOptionalScrollView(parentWidget, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 8);
+            SGWTextLabel(staticVar_waitPage, "processing...", 0.0, 0.5, 0.5, -1.0, 1.0, -1.0, 0.0, 2.0);
+            blob = allocateBlob(4);
+            writeInt(blob, 0, staticVar_editViewCurrentQuestionNumber);
+            callAPI("/generate", blob, doneGenerate);
+        }
+
+        staticVar_databaseEditBackground = null;
+        staticVar_databaseEditInput = null;
+        function editDatabase(){
+            callAPI("/get_database", allocateBlob(0), doneFetchDatabaseContents);
+        }
+
+        function editDatabaseAIAssisted(){
+            closeCustomEditPage(allocateBlob(0));
+            staticVar_databaseEditBackground = SGWOptionalScrollView(parentWidget, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 8);
+            let w = SGWTextLabel(staticVar_databaseEditBackground, "Enter below instructions for the AI to follow when modifying the database. This can be requests to rephrase something or to remove all mentions of some information that you do not want to see in the database. Do not use AI assist when adding information.", 0.0, 0.5, 0.0, 0.5, 1.0, -1.0, 0.0, 3.0);
+            makeMultiline(w);
+            staticVar_databaseEditInput = SGWTextInput(staticVar_databaseEditBackground, 0.0, 0.5, 0.0, 4.0, 1.0, -1.0, 1.0, -6.0);
+            makeMultiline(staticVar_databaseEditInput);
+            SGWTextButton(staticVar_databaseEditBackground, "save changes", doneEditDatabaseAIAssisted, 0.0, 0.5, 1.0, -1.5, 1.0, -1.0, 0.0, 1.0);
+        }
+
+        function doneEditDatabaseAIAssisted(){
+            let instructions = getTextInputContents(staticVar_databaseEditInput);
+            closeCustomEditPage(allocateBlob(0));
+            staticVar_waitPage = SGWOptionalScrollView(parentWidget, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 8);
+            SGWTextLabel(staticVar_waitPage, "processing...", 0.0, 0.5, 0.5, -1.0, 1.0, -1.0, 0.0, 2.0);
+            let instructionsLength = getStringBytesCount(instructions);
+            blob = allocateBlob(4 + instructionsLength);
+            writeInt(blob, 0, instructionsLength);
+            writeString(blob, 4, instructions);
+            callAPI("/database_edit", blob, doneAIAssistWriteDatabase);
+        }
+
+        function doneAIAssistWriteDatabase(blob){
+            deleteWidget(staticVar_waitPage);
+            staticVar_waitPage = null;
+        }
+
+        function doneFetchDatabaseContents(blob){
+            let length = readInt(blob, 0);
+            staticVar_databaseEditBackground = SGWOptionalScrollView(parentWidget, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 8);
+            SGWTextButton(staticVar_databaseEditBackground, "edit with AI assistance", editDatabaseAIAssisted, 0.0, 0.5, 0.0, 0.5, 1.0, -1.0, 0.0, 1.0);
+            let w = SGWTextLabel(staticVar_databaseEditBackground, "Enter the information that you want the AI to know about Prompta AI below. Remember to use point form in a format similar to the existing points.", 0.0, 0.5, 0.0, 2.0, 1.0, -1.0, 0.0, 3.0);
+            makeMultiline(w);
+            staticVar_databaseEditInput = SGWTextInput(staticVar_databaseEditBackground, 0.0, 0.5, 0.0, 5.5, 1.0, -1.0, 1.0, -6.0);
+            makeMultiline(staticVar_databaseEditInput);
+            setTextInputContents(staticVar_databaseEditInput, readString(blob, 4, length));
+            SGWTextButton(staticVar_databaseEditBackground, "save changes", doneDatabaseEdit, 0.0, 0.5, 1.0, -1.5, 1.0, -1.0, 0.0, 1.0);
+        }
+
+        function doneDatabaseEdit(){
+            let newContents = getTextInputContents(staticVar_databaseEditInput);
+            let length = getStringBytesCount(newContents);
+            let blob = allocateBlob(4 + length);
+            writeInt(blob, 0, length);
+            writeString(blob, 4, newContents);
+            callAPI("/set_database", blob, closeCustomEditPage);
+        }
+
+        function editRequirements(){
+            callAPI("/get_requirements", allocateBlob(0), doneFetchRequirementsContents);
+        }
+
+        function doneFetchRequirementsContents(blob){
+            let length = readInt(blob, 0);
+            staticVar_databaseEditBackground = SGWOptionalScrollView(parentWidget, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 8);
+            let w = SGWTextLabel(staticVar_databaseEditBackground, "Enter below the requirements for RFPs that Prompta AI will look at. If the AI detects that a RFP may not follow any of these requirements while the RFP is being uploaded, it will prompt for human confirmation before proceeding.", 0.0, 0.5, 0.0, 0.5, 1.0, -1.0, 0.0, 3.0);
+            makeMultiline(w);
+            staticVar_databaseEditInput = SGWTextInput(staticVar_databaseEditBackground, 0.0, 0.5, 0.0, 4.0, 1.0, -1.0, 1.0, -6.0);
+            makeMultiline(staticVar_databaseEditInput);
+            setTextInputContents(staticVar_databaseEditInput, readString(blob, 4, length));
+            SGWTextButton(staticVar_databaseEditBackground, "save changes", doneRequirementsEdit, 0.0, 0.5, 1.0, -1.5, 1.0, -1.0, 0.0, 1.0);
+        }
+
+        function doneRequirementsEdit(){
+            let newContents = getTextInputContents(staticVar_databaseEditInput);
+            let length = getStringBytesCount(newContents);
+            let blob = allocateBlob(4 + length);
+            writeInt(blob, 0, length);
+            writeString(blob, 4, newContents);
+            callAPI("/set_requirements", blob, closeCustomEditPage);
+        }
+
+        function editGeneralInfo(){
+            callAPI("/get_general_info", allocateBlob(0), doneFetchGeneralInfo);
+        }
+
+        function doneFetchGeneralInfo(blob){
+            let length = readInt(blob, 0);
+            staticVar_databaseEditBackground = SGWOptionalScrollView(parentWidget, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 8);
+            let w = SGWTextLabel(staticVar_databaseEditBackground, "Enter the information that you want the AI to know about this specific RFP below. This information is supplied to the AI when automatically generating responses.", 0.0, 0.5, 0.0, 0.5, 1.0, -1.0, 0.0, 3.0);
+            makeMultiline(w);
+            staticVar_databaseEditInput = SGWTextInput(staticVar_databaseEditBackground, 0.0, 0.5, 0.0, 4.0, 1.0, -1.0, 1.0, -6.0);
+            makeMultiline(staticVar_databaseEditInput);
+            setTextInputContents(staticVar_databaseEditInput, readString(blob, 4, length));
+            SGWTextButton(staticVar_databaseEditBackground, "save changes", doneGeneralInfoEdit, 0.0, 0.5, 1.0, -1.5, 1.0, -1.0, 0.0, 1.0);
+        }
+
+        function doneGeneralInfoEdit(){
+            let newContents = getTextInputContents(staticVar_databaseEditInput);
+            let length = getStringBytesCount(newContents);
+            let blob = allocateBlob(4 + length);
+            writeInt(blob, 0, length);
+            writeString(blob, 4, newContents);
+            callAPI("/set_general_info", blob, closeCustomEditPage);
+        }
+
+        function closeCustomEditPage(blob){
+            deleteWidget(staticVar_databaseEditBackground);
+            staticVar_databaseEditBackground = null;
+            staticVar_databaseEditInput = null;
+        }
+
+        function closeProject(){
+            deleteWidget(staticVar_editViewBackground);
+            staticVar_editViewBackground = null;
+            staticVar_editViewQuestionsList = null;
+            staticVar_editViewContentsBackground = null;
+            staticVar_editViewShowQuestionsButton = null;
+            staticVar_editViewQuestionLabel = null;
+            staticVar_editViewInputField = null;
+            staticVar_editViewCurrentQuestionNumber = -1;
+            askForProjectData();
+        }
+
+        function implicitSaveForEnhance(){
+            createSave(1, true);
+        }
+
+        function createProjectPage(blob){
+            deleteWidget(staticVar_projectPageBackground);
+            staticVar_projectPageBackground = null;
+            staticVar_projectListBackground = null;
+            staticVar_editViewBackground = SGWOptionalScrollView(parentWidget, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 8);
+            staticVar_editViewQuestionsList = SGWOptionalScrollView(staticVar_editViewBackground, 0.0, 0.0, 0.0, 2.0, 0.5, 0.0, 1.0, -2.0, 7);
+            staticVar_editViewContentsBackground = SGWOptionalScrollView(staticVar_editViewBackground, 0.5, 0.0, 0.0, 2.0, 0.5, 0.0, 1.0, -2.0, 8);
+            SGWTextButton(staticVar_editViewQuestionsList, "hide questions", hideQuestionList, 1.0, -8.5, 0.0, 0.5, 0.0, 8.0, 0.0, 1.0);
+            staticVar_editViewShowQuestionsButton = SGWTextButton(staticVar_editViewContentsBackground, "show questions", showQuestionList, -1.0, 0.5, 0.0, 0.0, 0.0, 8.0, 0.0, 1.0);
+            SGWTextButton(staticVar_editViewContentsBackground, "save", createExplicitSave, 1.0, -3.5, 0.0, 0.0, 0.0, 3.0, 0.0, 1.0);
+            SGWTextButton(staticVar_editViewContentsBackground, "generate", useAiGenerate, 1.0, -9.0, 0.0, 0.0, 0.0, 5.0, 0.0, 1.0);
+            SGWTextButton(staticVar_editViewContentsBackground, "enhance", implicitSaveForEnhance, 1.0, -14.5, 0.0, 0.0, 0.0, 5.0, 0.0, 1.0);
+            SGWTextButton(staticVar_editViewContentsBackground, "revert", showConfirmRevertPage, 1.0, -19.0, 0.0, 0.0, 0.0, 4.0, 0.0, 1.0);
+            SGWTextButton(staticVar_editViewBackground, "edit RFP information", editGeneralInfo, 0.0, 0.5, 0.0, 0.5, 0.0, 15.0, 0.0, 1.0);
+            SGWTextButton(staticVar_editViewBackground, "export as DOCX template", showExportMenu, 0.0, 16.0, 0.0, 0.5, 0.0, 20.0, 0.0, 1.0);
+            SGWTextButton(staticVar_editViewBackground, "exit", closeProject, 1.0, -4.5, 0.0, 0.5, 0.0, 4.0, 0.0, 1.0);
+            staticVar_editViewQuestionLabel = SGWTextLabel(staticVar_editViewContentsBackground, "(choose a question to open from the left)", 0.0, 0.5, 0.0, 1.5, 1.0, -1.0, 0.4, -1.5);
+            staticVar_editViewInputField = SGWTextInput(staticVar_editViewContentsBackground, 0.0, 0.5, 0.4, 0.0, 1.0, -1.0, 0.6, -0.5);
+            makeMultiline(staticVar_editViewQuestionLabel);
+            makeMultiline(staticVar_editViewInputField);
+            let questionCount = readInt(blob, 0);
+            for(let i=0; i<questionCount; i++){
+                let offset = readInt(blob, 4 + 4 * i);
+                let length = readInt(blob, 4 + 4 * questionCount + 4 * i);
+                let w = SGWTextButton(staticVar_editViewQuestionsList, readString(blob, offset, length), createImplicitSave, 0.0, 0.5, 0.0, 2.0 + 1.05 * i, 1.0, -1.0, 0.0, 1.0);
+                w.firstChild.questionNumber = i;
+            }
+        }
+
+        function openProject(){
+            let blob = allocateBlob(4);
+            writeInt(blob, 0, staticVar_projects.get(getButtonTextContent(this)));
+            callAPI("/open_project", blob, createProjectPage);
+        }
+
+        staticVar_deleteProjectConfirm = null;
+        staticVar_deleteProjectHash = -1;
+        function showDeleteProjectPage(){
+            staticVar_deleteProjectHash = staticVar_projects.get(getButtonTextContent(this.associatedProjectButton));
+            staticVar_deleteProjectConfirm = SGWOptionalScrollView(parentWidget, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 8);
+            let message = "\tAre you sure that you want to delete this project? This operation is irreversible.\n\tYou should only delete a project if Prompta AI has decided that we would no longer respond to the RFP or if the response proposal has already been sent and the project is completed.";
+            let w = SGWTextLabel(staticVar_deleteProjectConfirm, message, 0.25, 0.5, 0.25, 0.5, 0.5, -1.0, 1.0, -2.0);
+            makeMultiline(w);
+            SGWTextButton(staticVar_deleteProjectConfirm, "cancel", cancelDeleteProject, 0.25, 0.0, 0.75, -1.0, 0.25, 0.0, 0.0, 1.0);
+            SGWTextButton(staticVar_deleteProjectConfirm, "delete", confirmDeleteProject, 0.5, 0.0, 0.75, -1.0, 0.25, 0.0, 0.0, 1.0);
+        }
+
+        function cancelDeleteProject(){
+            staticVar_deleteProjectHash = -1;
+            deleteWidget(staticVar_deleteProjectConfirm);
+            staticVar_deleteProjectConfirm = null;
+        }
+
+        function confirmDeleteProject(){
+            let blob = allocateBlob(4);
+            writeInt(blob, 0, staticVar_deleteProjectHash);
+            callAPI("/delete_project", blob, doneDeleteProject);
+            cancelDeleteProject();
+        }
+
+        function doneDeleteProject(blob){
+            askForProjectData();
+        }
+        
+        function receiveProjectData(blob){
+            /*
+                struct Project {
+                    layout(location = 0) int projectHash;
+                    layout(location = 4) int lengthOfProjectName;
+                    layout(location = 8) char projectName[lengthOfProjectName];
+                };
+                layout(location = 0) int numberOfProjects;
+                layout(location = 4) int projectOffsets[numberOfProjects];
+                layout(location = projectOffsets[index]) Project[numberOfProjects];
+            */
+            staticVar_projects = new Map();
+            let projCount = readInt(blob, 0);
+            staticVar_projectPageBackground = SGWOptionalScrollView(parentWidget, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 8);
+            SGWTextButton(staticVar_projectPageBackground, "new project", createNewProject, 0.0, 0.5, 0.0, 0.5, 0.0, 7.0, 0.0, 1.0);
+            SGWTextButton(staticVar_projectPageBackground, "upload sample", uploadSampleResponse, 0.0, 8.0, 0.0, 0.5, 0.0, 7.0, 0.0, 1.0);
+            SGWTextButton(staticVar_projectPageBackground, "edit database", editDatabase, 0.0, 15.5, 0.0, 0.5, 0.0, 10.0, 0.0, 1.0);
+            SGWTextButton(staticVar_projectPageBackground, "edit requirements", editRequirements, 0.0, 26.0, 0.0, 0.5, 0.0, 10.0, 0.0, 1.0);
+            staticVar_projectListBackground = SGWOptionalScrollView(staticVar_projectPageBackground, 0.0, 0.5, 0.0, 2.0, 1.0, -1.0, 1.0, -2.5, 8);
+            if(projCount == 0){
+                SGWTextLabel(staticVar_projectListBackground, "no projects here...", 0.5, -5.0, 0.5, -1.25, 0.0, 10.0, 0.0, 1.0);
+                SGWTextButton(staticVar_projectListBackground, "create new project", createNewProject, 0.5, -5.0, 0.5, 0.25, 0.0, 10.0, 0.0, 1.0);
+                return;
+            }
+            let offset = 4;
+            for(let i=0; i<projCount; i++){
+                let projectOffset = readInt(blob, 4 + 4 * i);
+                let projectHash = readInt(blob, projectOffset);
+                let nameByteLength = readInt(blob, projectOffset + 4);
+                let projectName = readString(blob, projectOffset + 8, nameByteLength);
+                let x = SGWTextButton(staticVar_projectListBackground, projectName, openProject, 0.0, 0.0, 0.0, 1.05 * i, 1.0, -4.5, 0.0, 1.0);
+                let w = SGWTextButton(staticVar_projectListBackground, "delete", showDeleteProjectPage, 1.0, -4.0, 0.0, 1.05 * i, 0.0, 4.0, 0.0, 1.0);
+                w.firstChild.associatedProjectButton = x;
+                staticVar_projects.set(projectName, projectHash);
+            }
+        }
+
+        let staticVar_exportMenuBackground = null;
+        let staticVar_exportMenuEnhanceYesButton = null;
+        let staticVar_exportMenuEnhanceNoButton = null;
+        let staticVar_exportMenuFileNameInput = null;
+        function showExportMenu(){
+            staticVar_exportMenuBackground = SGWOptionalScrollView(parentWidget, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 8);
+            let message = "The enhance tool can be used on all responses together before it is formatted into a DOCX file. This can be helpful to remove duplicate information from the responses. If you already made sure that the responses as a whole make sense, then there is no need to run enhance again.";
+            let w = SGWTextLabel(staticVar_exportMenuBackground, message, 0.0, 0.5, 0.0, 0.5, 1.0, -1.0, 0.0, 5.0);
+            makeMultiline(w);
+            SGWTextLabel(staticVar_exportMenuBackground, "use enhance?", 0.5, -10.0, 0.0, 6.0, 0.0, 10.0, 0.0, 1.0);
+            staticVar_exportMenuEnhanceYesButton = SGWTextButton(staticVar_exportMenuBackground, "yes", setExportEnhanceYes, 0.5, 0.0, 0.0, 6.0, 0.0, 4.0, 0.0, 1.0);
+            staticVar_exportMenuEnhanceNoButton = SGWTextButton(staticVar_exportMenuBackground, "no", setExportEnhanceNo, 0.5, 4.0, 0.0, 6.0, 0.0, 4.0, 0.0, 1.0);
+            SGWTextLabel(staticVar_exportMenuBackground, "file name:", 0.25, -7.0, 0.0, 7.5, 0.0, 7.0, 0.0, 1.0);
+            staticVar_exportMenuFileNameInput = SGWTextInput(staticVar_exportMenuBackground, 0.25, 0.0, 0.0, 7.5, 0.75, -0.5, 0.0, 1.0);
+            SGWTextButton(staticVar_exportMenuBackground, "generate document", proceedExport, 0.0, 0.5, 0.0, 9.5, 1.0, -1.0, 0.0, 1.0);
+            setSelected(staticVar_exportMenuEnhanceNoButton, true);
+        }
+
+        function setExportEnhanceNo(){
+            setSelected(staticVar_exportMenuEnhanceYesButton, false);
+            setSelected(staticVar_exportMenuEnhanceNoButton, true);
+        }
+
+        function setExportEnhanceYes(){
+            setSelected(staticVar_exportMenuEnhanceYesButton, true);
+            setSelected(staticVar_exportMenuEnhanceNoButton, false);
+        }
+
+        let staticVar_waitTemplateGenerateBackground = null;
+        let staticVar_waitTemplateGenerateMessage = null;
+        let staticVar_waitTemplateGenerateTimer = null;
+
+        let staticVar_exportDocxFileName = "";
+
+        function proceedExport(){
+            let fileName = getTextInputContents(staticVar_exportMenuFileNameInput);
+            let nameIsOk = true;
+            if(fileName == ""){nameIsOk = false;}
+            for(let i=0; i<fileName.length; i++){
+                if((fileName[i] < '0' || fileName[i] > '9') && (fileName[i] < 'a' || fileName[i] > 'z') && (fileName[i] < 'A' || fileName[i] > 'Z') && fileName[i] != '_'){nameIsOk = false;}
+            }
+            if(nameIsOk == false){
+                let w = SGWTextLabel(staticVar_exportMenuBackground, "name must be valid file name", 0.25, 0.0, 0.0, 8.5, 0.75, -0.5, 0.0, 1.0);
+                makeWarning(w);
+                return;
+            }
+            staticVar_exportDocxFileName = fileName;
+            let useEnhance = getSelected(staticVar_exportMenuEnhanceYesButton);
+            deleteWidget(staticVar_exportMenuBackground);
+            staticVar_exportMenuBackground = null;
+            staticVar_exportMenuEnhanceYesButton = null;
+            staticVar_exportMenuEnhanceNoButton = null;
+            staticVar_exportMenuFileNameInput = null;
+            staticVar_waitTemplateGenerateBackground = SGWOptionalScrollView(parentWidget, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 8);
+            SGWTextLabel(staticVar_waitTemplateGenerateBackground, "generating template document...", 0.0, 0.5, 0.5, -1.5, 1.0, -1.0, 0.0, 2.0);
+            staticVar_waitTemplateGenerateMessage = SGWTextLabel(staticVar_waitTemplateGenerateBackground, "sending responses...", 0.0, 0.5, 0.5, 1.0, 1.0, -1.0, 0.0, 1.0);
+            staticVar_waitTemplateGenerateTimer = setInterval(sampleTemplateGenerate, 1000);
+            let blob = allocateBlob(4);
+            if(useEnhance == true){writeInt(blob, 0, 1);}
+            else{writeInt(blob, 0, 0);}
+            callAPI("/generate_docx", blob, downloadDocxFile);
+        }
+
+        function downloadDocxFile(blob){
+            let fileSize = readInt(blob, 0);
+            let file = readBlob(blob, 4, fileSize);
+            let realBlob = new Blob([file], {type: "application/octet-stream"});
+            let link = URL.createObjectURL(realBlob);
+            let a = document.createElement("a");
+            a.href = link;
+            a.download = staticVar_exportDocxFileName + ".docx";
+            staticVar_exportDocxFileName = "";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(link);
+        }
+
+        function sampleTemplateGenerate(){
+            callAPI("/generate_docx_sample", allocateBlob(0), useSampleTemplateGenerateResults);
+        }
+
+        function useSampleTemplateGenerateResults(blob){
+            deleteWidget(staticVar_waitTemplateGenerateMessage);
+            /*
+                layout(location = 0) int status;
+                layout(location = 4) int messageLength;
+                layout(location = 8) char message[messageLength];
+            */
+            let status = readInt(blob, 0); // 0 - processing, 1 - done
+            if(status == 1){
+                clearInterval(staticVar_waitTemplateGenerateTimer);
+                staticVar_waitTemplateGenerateTimer = 0;
+                deleteWidget(staticVar_waitTemplateGenerateBackground);
+                staticVar_waitTemplateGenerateBackground = null;
+                staticVar_waitTemplateGenerateMessage = null;
+                askForProjectData();
+                return;
+            }
+            let messageLength = readInt(blob, 4);
+            let message = readString(blob, 8, messageLength);
+            deleteWidget(staticVar_waitTemplateGenerateMessage);
+            staticVar_waitTemplateGenerateMessage = SGWTextLabel(staticVar_waitTemplateGenerateBackground, message, 0.0, 0.5, 0.5, 1.0, 1.0, -1.0, 0.0, 1.0);
+        }
+
+        askForProjectData();
+    </script>
+</body>
+</html>
