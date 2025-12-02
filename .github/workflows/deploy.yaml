@@ -1,0 +1,25 @@
+name: deploy app
+on:
+    push:
+        branches: master # build and deploy whenever I commit to main, on this repository the main branch is called master cos they follow old conventions
+jobs:
+    deploy: # is job ID number
+        runs-on: ubuntu-latest # GitHub Actions VM, this does not need to match the Docker base image
+        steps:
+            - name: pull code onto VM
+                uses: actions/checkout@v3 # prewritten list of commands to clone the repository, pull stuff, etc, but properly
+            - name: install Google Cloud SDK on VM
+                uses: google-github-actions/setup-gcloud@v2 # prewritten list of commands to install the SDK and prepare it for usage by authenticating with provided keys
+                with:
+                    project_id: ${{secrets.GCP_PROJECT_ID}} # says which project to deploy to
+                    service_account_key: ${{secrets.GCP_SA_KEY}} # provides the Google Cloud key
+            - name: allow Docker to push stuff to Google Cloud
+                run: gcloud auth configure-docker
+            - name: build Docker image
+                run: docker build -t gcr.io/${{secrets.GCP_PROJECT_ID}}/RFP_generator:$GITHUB_SHA .
+            - name: set image as latest version
+                run: docker tag gcr.io/${{secrets.GCP_PROJECT_ID}}/RFP_generator:$GITHUB_SHA gcr.io/${{secrets.GCP_PROJECT_ID}}/RFP_generator:latest
+            - name: push Docker image onto Google Cloud # only send over the code, nothing running
+                run: docker push gcr.io/${{secrets.GCP_PROJECT_ID}}/RFP_generator:latest
+            - name: start running the app
+                run: gcloud run deploy RFP_generator --image gcr.io/${{secrets.GCP_PROJECT_ID}}/RFP_generator:latest --region asia-southeast1 --platform managed
