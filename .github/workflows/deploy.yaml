@@ -23,11 +23,11 @@ jobs:
             - name: allow Docker to push stuff to Google Cloud
               run: gcloud auth configure-docker
             - name: build Docker image
-              run: docker build -t gcr.io/${{secrets.GCP_PROJECT_ID}}/RFP_generator:$GITHUB_SHA .
+              run: docker build -t gcr.io/${{secrets.GCP_PROJECT_ID}}/rfp_generator:$GITHUB_SHA .
             - name: set image as latest version
-              run: docker tag gcr.io/${{secrets.GCP_PROJECT_ID}}/RFP_generator:$GITHUB_SHA gcr.io/${{secrets.GCP_PROJECT_ID}}/RFP_generator:latest
+              run: docker tag gcr.io/${{secrets.GCP_PROJECT_ID}}/rfp_generator:$GITHUB_SHA gcr.io/${{secrets.GCP_PROJECT_ID}}/rfp_generator:latest
             # only send over the code, nothing running
             - name: push Docker image onto Google Cloud
-              run: docker push gcr.io/${{secrets.GCP_PROJECT_ID}}/RFP_generator:latest
+              run: docker push gcr.io/${{secrets.GCP_PROJECT_ID}}/rfp_generator:latest
             - name: start running the app
-              run: gcloud run deploy RFP_generator --image gcr.io/${{secrets.GCP_PROJECT_ID}}/RFP_generator:latest --region asia-southeast1 --platform managed
+              run: gcloud run deploy rfp_generator --image gcr.io/${{secrets.GCP_PROJECT_ID}}/rfp_generator:latest --region asia-southeast1 --platform managed
