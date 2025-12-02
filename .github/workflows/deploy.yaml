@@ -10,24 +10,24 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: pull code onto VM
-                # prewritten list of commands to clone the repository, pull stuff, etc, but properly
-                uses: actions/checkout@v3
+              # prewritten list of commands to clone the repository, pull stuff, etc, but properly
+              uses: actions/checkout@v3
             - name: install Google Cloud SDK on VM
-                # prewritten list of commands to install the SDK and prepare it for usage by authenticating with provided keys
-                uses: google-github-actions/setup-gcloud@v2
-                with:
-                    # says which project to deploy to
-                    project_id: ${{secrets.GCP_PROJECT_ID}}
-                    # provides the Google Cloud key
-                    service_account_key: ${{secrets.GCP_SA_KEY}}
+              # prewritten list of commands to install the SDK and prepare it for usage by authenticating with provided keys
+              uses: google-github-actions/setup-gcloud@v2
+              with:
+                # says which project to deploy to
+                project_id: ${{secrets.GCP_PROJECT_ID}}
+                # provides the Google Cloud key
+                service_account_key: ${{secrets.GCP_SA_KEY}}
             - name: allow Docker to push stuff to Google Cloud
-                run: gcloud auth configure-docker
+              run: gcloud auth configure-docker
             - name: build Docker image
-                run: docker build -t gcr.io/${{secrets.GCP_PROJECT_ID}}/RFP_generator:$GITHUB_SHA .
+              run: docker build -t gcr.io/${{secrets.GCP_PROJECT_ID}}/RFP_generator:$GITHUB_SHA .
             - name: set image as latest version
-                run: docker tag gcr.io/${{secrets.GCP_PROJECT_ID}}/RFP_generator:$GITHUB_SHA gcr.io/${{secrets.GCP_PROJECT_ID}}/RFP_generator:latest
+              run: docker tag gcr.io/${{secrets.GCP_PROJECT_ID}}/RFP_generator:$GITHUB_SHA gcr.io/${{secrets.GCP_PROJECT_ID}}/RFP_generator:latest
             # only send over the code, nothing running
             - name: push Docker image onto Google Cloud
-                run: docker push gcr.io/${{secrets.GCP_PROJECT_ID}}/RFP_generator:latest
+              run: docker push gcr.io/${{secrets.GCP_PROJECT_ID}}/RFP_generator:latest
             - name: start running the app
-                run: gcloud run deploy RFP_generator --image gcr.io/${{secrets.GCP_PROJECT_ID}}/RFP_generator:latest --region asia-southeast1 --platform managed
+              run: gcloud run deploy RFP_generator --image gcr.io/${{secrets.GCP_PROJECT_ID}}/RFP_generator:latest --region asia-southeast1 --platform managed
