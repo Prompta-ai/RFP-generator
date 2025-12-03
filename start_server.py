@@ -622,10 +622,10 @@ def openServer():
     sys.modules["DjangoSettings"] = djangoSettingsModuleObject;
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "DjangoSettings");
     django.setup();
-    make_server("0.0.0.0", 726, get_wsgi_application(), server_class=ThreadedWSGIServer).serve_forever();
+    make_server("0.0.0.0", 8080, get_wsgi_application(), server_class=ThreadedWSGIServer).serve_forever();
 
 def openBrowser():
-    webbrowser.open("http://localhost:726");
+    webbrowser.open("http://localhost:8080");
 
 def DLL_EXPORT_startServerAndClient():
     threading.Timer(1.0, openBrowser).start();
