@@ -1,33 +1,68 @@
-name: deploy app
+name: Build and Push Python Image to Google Cloud Platform
+
 on:
     push:
-        # build and deploy whenever I commit to main, on this repository the main branch is called master cos they follow old conventions
-        branches: master
+        branches:
+            - master
+
 jobs:
-    # is job ID number
-    deploy:
-        # GitHub Actions VM, this does not need to match the Docker base image
+    build-push-gcr:
+        name: Build and Push to GCP
         runs-on: ubuntu-latest
+        env:
+            IMAGE_NAME: rfp_generator
+            PROJECT_ID: ${{secrets.GCP_PROJECT_ID}}
+            PROJECT_NUMBER: ${{secrets.GCP_PROJECT_NUMBER}}
+
         steps:
-            - name: pull code onto VM
-              # prewritten list of commands to clone the repository, pull stuff, etc, but properly
-              uses: actions/checkout@v3
-            - name: install Google Cloud SDK on VM
-              # prewritten list of commands to install the SDK and prepare it for usage by authenticating with provided keys
-              uses: google-github-actions/setup-gcloud@v2
-              with:
-                # says which project to deploy to
-                project_id: ${{secrets.GCP_PROJECT_ID}}
-                # provides the Google Cloud key
-                service_account_key: ${{secrets.GCP_SA_KEY}}
-            - name: allow Docker to push stuff to Google Cloud
-              run: gcloud auth configure-docker
-            - name: build Docker image
-              run: docker build -t gcr.io/${{secrets.GCP_PROJECT_ID}}/rfp_generator:$GITHUB_SHA .
-            - name: set image as latest version
-              run: docker tag gcr.io/${{secrets.GCP_PROJECT_ID}}/rfp_generator:$GITHUB_SHA gcr.io/${{secrets.GCP_PROJECT_ID}}/rfp_generator:latest
-            # only send over the code, nothing running
-            - name: push Docker image onto Google Cloud
-              run: docker push gcr.io/${{secrets.GCP_PROJECT_ID}}/rfp_generator:latest
-            - name: start running the app
-              run: gcloud run deploy rfp_generator --image gcr.io/${{secrets.GCP_PROJECT_ID}}/rfp_generator:latest --region asia-southeast1 --platform managed
+        - name: Checkout the code
+          uses: actions/checkout@v4
+          with:
+            fetch-depth: 0
+
+        - name: Set up Cloud SDK
+          uses: google-github-actions/setup-gcloud@v2.1.0
+
+        - name: Authenticate to Google Cloud
+          uses: google-github-actions/auth@v2.1.0
+          with:
+            credentials_json: '${{secrets.GCP_SA_KEY}}'
+
+        - name: Configure Environment Variables
+          run: |
+            echo "DEPLOYMENT_ENV=prod" >> $GITHUB_ENV
+
+        - name: Build Docker Image
+          run: docker build -t $IMAGE_NAME:latest .
+
+        - name: Set image tag for Master branch
+          run: |
+            bash ./scripts/git_update.sh -v patch
+            echo "IMAGE_TAG=prod-${{steps.increment-git-tag.outputs.git-tag}}" >> $GITHUB_ENV
+
+        - name: Configure Docker Client
+          run: |-
+            gcloud auth configure-docker --quiet
+            gcloud auth configure-docker northamerica-northeast2-docker.pkg.dev --quiet
+
+        - name: Push Docker Image to Artifact Registry
+          run: |-
+              docker tag $IMAGE_NAME:latest northamerica-northeast2-docker.pkg.dev/$PROJECT_ID/images/$IMAGE_NAME:latest
+              docker tag $IMAGE_NAME:latest northamerica-northeast2-docker.pkg.dev/$PROJECT_ID/images/$IMAGE_NAME:$IMAGE_TAG
+              docker push northamerica-northeast2-docker.pkg.dev/$PROJECT_ID/images/$IMAGE_NAME:latest
+              docker push northamerica-northeast2-docker.pkg.dev/$PROJECT_ID/images/$IMAGE_NAME:$IMAGE_TAG
+
+        - name: Deploy to Cloud Run
+          run: |
+            SERVICE_NAME="rfp_generator"
+            SETTINGS_NAME="prod-rfp_generator-config"
+            gcloud run deploy $SERVICE_NAME \
+              --image northamerica-northeast2-docker.pkg.dev/$PROJECT_ID/images/$IMAGE_NAME:$IMAGE_TAG \
+              --allow-unauthenticated \
+              --platform managed \
+              --region northamerica-northeast2 \
+              --cpu 4 \
+              --memory 8Gi \
+              --vpc-connector prod-vpc-connector \
+              --set-env-vars GOOGLE_CLOUD_PROJECT=$PROJECT_ID,SETTINGS_NAME=$SETTINGS_NAME \
+              --quiet
