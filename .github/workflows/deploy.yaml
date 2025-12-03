@@ -59,7 +59,7 @@ jobs:
               --image northamerica-northeast2-docker.pkg.dev/$PROJECT_ID/images/$IMAGE_NAME:$IMAGE_TAG \
               --allow-unauthenticated \
               --platform managed \
-              --region northamerica-northeast2 \
+              --region us-east1 \
               --cpu 4 \
               --memory 8Gi \
               --vpc-connector prod-vpc-connector \
