@@ -9,7 +9,4 @@
  RUN pip install python-docx
  RUN pip install crewai
  RUN pip install PyMuPDF
- EXPOSE 8080
- # docker build -t application_iso .
- # docker run -i -t -v ~/Prompta_AI:/Prompta_AI -p 8080:8080 -w /Prompta_AI/codebase --name application_instance --rm application_iso python main.py
- # docker run -i -t -v ~/Prompta_AI:/Prompta_AI -p 8080:8080 -w /Prompta_AI/codebase --name application_instance --rm application_iso /bin/bash
+ CMD ["python", "main.py"]
