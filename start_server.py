@@ -472,11 +472,11 @@ def DLL_EXPORT_API_saveResponse(request):
     return saveResponseCustomBlob(request.body);
 
 def DLL_EXPORT_API_terminateServer(request):
-    syscall9();
+    return sendBlob(allocateBlob(0));
 
 def DLL_EXPORT_API_terminateWithSave(request):
     saveResponseCustomBlob(request.body);
-    DLL_EXPORT_API_terminateServer(request);
+    return sendBlob(allocateBlob(0));
 
 def DLL_EXPORT_API_revertResponse(request):
     global currentOpenProject;

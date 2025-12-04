@@ -8,9 +8,6 @@ def getApiKey():
     apiKey = open(".env", "r", encoding="utf-8").read();
     return apiKey;
 
-def syscall9():
-    os.kill(os.getpid(), 2);
-
 def fileExists(filePath):
     return os.path.exists(filePath);
 
