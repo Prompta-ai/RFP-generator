@@ -4,10 +4,6 @@ from crewai import Agent, Task, Crew;
 import signal;
 import sys;
 
-def getApiKey():
-    apiKey = open(".env", "r", encoding="utf-8").read();
-    return apiKey;
-
 def fileExists(filePath):
     return os.path.exists(filePath);
 
@@ -57,7 +53,6 @@ def runAgent(role, goal, backstory, task, expectedOutput, inputMap, debugMode):
     if(apiKeyActivated == False):
         apiKeyActivated = True;
         os.environ["OPENAI_MODEL_NAME"] = "gpt-5";
-        os.environ["OPENAI_API_KEY"] = getApiKey();
     agent = Agent(role = role, goal = goal, backstory = backstory, verbose = debugMode);
     task = Task(description = task, expected_output = expectedOutput, agent = agent);
     crew = Crew(agents = [agent], tasks = [task], verbose = debugMode);
