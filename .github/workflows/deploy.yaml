@@ -63,5 +63,5 @@ jobs:
               --cpu 4 \
               --memory 8Gi \
               --vpc-connector prod-vpc-connector \
-              --set-env-vars GOOGLE_CLOUD_PROJECT=$PROJECT_ID,SETTINGS_NAME=$SETTINGS_NAME \
+              --set-env-vars GOOGLE_CLOUD_PROJECT=$PROJECT_ID,SETTINGS_NAME=$SETTINGS_NAME,OPENAI_API_KEY=${{secrets.OPENAI_API_KEY}} \
               --quiet
