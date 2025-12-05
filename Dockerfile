@@ -9,4 +9,6 @@
  RUN pip install python-docx
  RUN pip install crewai
  RUN pip install PyMuPDF
+ WORKDIR /Prompta_AI
+ COPY . .
  CMD ["python", "main.py"]
